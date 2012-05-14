@@ -6,10 +6,13 @@ library to use MongoDB as database backend. It's uses V2 branch
 of "CodeIgniter MongoDB Active Record Library" by Alex Bilbie as
 MongoDB interface. See below for installation instructions.
 
-##Requirements:
+##Sample screenshot
+![CodeIgniter MongoDB Session Library - Sample session document](http://localhostr.com/file/930/hDBmU0TwPWRZ/ci-mongodb-session.png)
+
+##Requirements
 * [CodeIgniter MongoDB Active Record Library](https://github.com/alexbilbie/codeigniter-mongodb-library)
 
-##Installation:
+##Installation
 * Place `MY_Session.php` file in `application/libraries` directory.
 
 * Place `mongodb_session.php` file in `application/config` directory.
