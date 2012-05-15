@@ -1,4 +1,4 @@
-<?php  if ( ! defined('BASEPATH')) exit('No `rect script access allowed');
+<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * CodeIgniter MongoDB Session Library
  *
