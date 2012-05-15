@@ -1,4 +1,4 @@
-<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php  if ( ! defined('BASEPATH')) exit('No `rect script access allowed');
 /**
  * CodeIgniter MongoDB Session Library
  *
@@ -199,11 +199,11 @@ class MY_Session extends CI_Session {
 		else
 		{
 			// encryption was not used, so we need to check the md5 hash
-			$hash	 = substr($session, strlen($session)-32); // get last 32 chars
-			$session = substr($session, 0, strlen($session)-32);
+			$hash	 = substr($session, strlen($session) - 32); // get last 32 chars
+			$session = substr($session, 0, strlen($session) - 32);
 
-			// Does the md5 hash match?  This is to prevent manipulation of session data in userspace
-			if ($hash !==  md5($session.$this->encryption_key))
+			// Does the md5 hash match? This is to prevent manipulation of session data in userspace
+			if ($hash !== md5($session.$this->encryption_key))
 			{
 				log_message('error', 'The session cookie data did not match what was expected. This could be a possible hacking attempt.');
 				$this->sess_destroy();
@@ -425,21 +425,23 @@ class MY_Session extends CI_Session {
 			'ip_address'	=> $this->CI->input->ip_address(),
 			'user_agent'	=> substr($this->CI->input->user_agent(), 0, 120),
 			'last_activity'	=> $this->now,
-			'user_data'		=> ''
+			'user_data'		=> '',
 		);
-
 
 		// Save the data to the DB if needed
 		if ($this->sess_use_database === TRUE)
 		{
 			if ($this->_use_mongodb)
 			{
-				// Prepare session document
-				$userdata = $this->userdata;
-				$userdata['_id'] = new MongoId($userdata['session_id']);
-				unset($userdata['session_id']);
+				// Prepare session document:
+				// We're using document's _id field as session identifier,
+				// so we move the value to _id and remove session_id field.
+				$document = $this->userdata;
+				$document['_id'] = new MongoId($document['session_id']);
+				unset($document['session_id']);
+
 				// Insert session document
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $userdata);
+				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $document);
 			}
 			elseif ($this->sess_table_name != '')
 			{
@@ -461,7 +463,7 @@ class MY_Session extends CI_Session {
 	 */
 	public function sess_update()
 	{
-		// We only update the session every five minutes by default
+		// We only update the session every "sess_time_to_update" seconds by default
 		if (($this->userdata['last_activity'] + $this->sess_time_to_update) >= $this->now)
 		{
 			return;
@@ -503,19 +505,19 @@ class MY_Session extends CI_Session {
 			// Update session document
 			if ($this->_use_mongodb)
 			{
-				$current_session = $this->CI->mongo_db
+				$old_session = $this->CI->mongo_db
 					->where('_id', new MongoId($old_sessid))
 					->get($this->_config['sess_collection_name']);
 
-				$current_session['_id'] = new MongoId($new_sessid);
+				$old_session[0]['_id'] = new MongoId($new_sessid);
 
-				// Since we're using _id field as our session identifier,
-				// we need to remove the document and insert another one.
+				// Since we're using _id field as our session identifier, we need to
+				// remove the old session document first and insert another one later.
 				$this->CI->mongo_db
 					->where('_id', new MongoId($old_sessid))
 					->delete($this->_config['sess_collection_name']);
 
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $current_session);
+				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $old_session[0]);
 			}
 			// Update session record
 			elseif ($this->sess_table_name != '')
