@@ -10,7 +10,7 @@ MongoDB interface. See below for installation instructions.
 ![CodeIgniter MongoDB Session Library - Sample session document](http://localhostr.com/file/930/hDBmU0TwPWRZ/ci-mongodb-session.png)
 
 ##Requirements
-* [CodeIgniter MongoDB Active Record Library](https://github.com/alexbilbie/codeigniter-mongodb-library)
+* [CodeIgniter MongoDB Active Record Library](https://github.com/alexbilbie/codeigniter-mongodb-library/tree/v2)
 
 ##Installation
 * Place `MY_Session.php` file in `application/libraries` directory.
