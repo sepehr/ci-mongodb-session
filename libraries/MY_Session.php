@@ -384,7 +384,7 @@ class MY_Session extends CI_Session {
 		if ($this->_use_mongodb)
 		{
 			$this->CI->mongo_db
-				->where('session_id' => $this->userdata['session_id'])
+				->where(array('session_id' => $this->userdata['session_id']))
 				->set(array(
 					'last_activity' => $this->userdata['last_activity'],
 					'user_data' => $custom_userdata)
@@ -505,7 +505,7 @@ class MY_Session extends CI_Session {
 			{
 				// Update session_id and last_activity
 				$this->CI->mongo_db
-					->where('session_id' => $old_sessid)
+					->where(array('session_id' => $old_sessid))
 					->set(array(
 						'session_id' => $new_sessid,
 						'last_activity' => $this->now)
@@ -548,7 +548,7 @@ class MY_Session extends CI_Session {
 			if ($this->_use_mongodb)
 			{
 				$this->CI->mongo_db
-					->where('session_id', $this->userdata['session_id'])
+					->where(array('session_id', $this->userdata['session_id']))
 					->delete($this->_config['sess_collection_name']);
 			}
 			elseif ($this->sess_table_name != '')
