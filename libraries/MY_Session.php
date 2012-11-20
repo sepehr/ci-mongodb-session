@@ -252,7 +252,7 @@ class MY_Session extends CI_Session {
 			if ($this->_use_mongodb)
 			{
 				// Build the session match condition array
-				$conditions = array('_id' => new MongoId($session['session_id']));
+				$conditions = array('session_id' => $session['session_id']);
 
 				if ($this->sess_match_ip == TRUE)
 				{
@@ -384,7 +384,7 @@ class MY_Session extends CI_Session {
 		if ($this->_use_mongodb)
 		{
 			$this->CI->mongo_db
-				->where('_id', new MongoId($this->userdata['session_id']))
+				->where('session_id' => $this->userdata['session_id'])
 				->set(array(
 					'last_activity' => $this->userdata['last_activity'],
 					'user_data' => $custom_userdata)
@@ -438,20 +438,8 @@ class MY_Session extends CI_Session {
 		{
 			if ($this->_use_mongodb)
 			{
-				// Prepare session document:
-				// We're using document's _id field as session identifier,
-				// so we move the value to _id and remove session_id field.
-				
-				// Why reduce to 24-character hex string?
-				// So MongoId can take this input
-				// see: http://www.php.net/manual/en/mongoid.construct.php
-
-				$document = $this->userdata;
-				$document['_id'] = new MongoId(substr($document['session_id'], 0, 24));
-				unset($document['session_id']);
-
 				// Insert session document
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $document);
+				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $this->userdata);
 			}
 			elseif ($this->sess_table_name != '')
 			{
@@ -515,29 +503,14 @@ class MY_Session extends CI_Session {
 			// Update session document
 			if ($this->_use_mongodb)
 			{
-				// Get a copy of the session in db
-
-				// Why reduce to 24-character hex string?
-				// So MongoId can take this input
-				// see: http://www.php.net/manual/en/mongoid.construct.php
-
-				$session_db = $this->CI->mongo_db
-					->where('_id', new MongoId(substr($old_sessid, 0, 24)))
-					->get($this->_config['sess_collection_name']);
-
-				// Since we're using _id field as our session identifier, we need to
-				// remove the old session document first and insert another one later.
+				// Update session_id and last_activity
 				$this->CI->mongo_db
-					->where('_id', $session_db[0]['_id'])
-					->delete($this->_config['sess_collection_name']);
-
-				// Replace the session _id and last activity with new ones
-				$session_db[0]['_id'] = new MongoId(substr($new_sessid, 0, 24));
-				$session_db[0]['last_activity'] = $this->now;
-
-				// Insert the new session into db
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $session_db[0]);
-
+					->where('session_id' => $old_sessid)
+					->set(array(
+						'session_id' => $new_sessid,
+						'last_activity' => $this->now)
+					)
+					->update($this->_config['sess_collection_name']);
 			}
 			// Update session record
 			elseif ($this->sess_table_name != '')
@@ -575,7 +548,7 @@ class MY_Session extends CI_Session {
 			if ($this->_use_mongodb)
 			{
 				$this->CI->mongo_db
-					->where('_id', new MongoId(substr($this->userdata['session_id'], 0, 24))
+					->where('session_id', $this->userdata['session_id'])
 					->delete($this->_config['sess_collection_name']);
 			}
 			elseif ($this->sess_table_name != '')
