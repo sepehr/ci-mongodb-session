@@ -81,16 +81,20 @@ class MY_Session extends CI_Session {
 	// --------------------------------------------------------------------
 
 	/**
-	 * MongoDB Session Constructor
+	 * Session Constructor
 	 *
-	 * Loads config, loads MongoDB active record and calls parent constructor.
+	 * The constructor runs the session routines automatically
+	 * whenever the class is instantiated.
+	 *
+	 * For MongoDB, this loads custom config and MongoDB active record lib
 	 */
 	public function __construct($params = array())
 	{
-		log_message('debug', 'Session Class Initialized');
+		log_message('debug', "Session Class Initialized");
 
-		// Load CI super object
+		// Set the super object to a local variable for use throughout the class
 		$this->CI =& get_instance();
+
 		// Load config directives
 		$this->CI->config->load($this->_config_file);
 		$this->_config = $this->CI->config->item('default');
@@ -168,7 +172,7 @@ class MY_Session extends CI_Session {
 		// Delete expired sessions if necessary
 		$this->_sess_gc();
 
-		log_message('debug', 'Session routines successfully run');
+		log_message('debug', "Session routines successfully run");
 	}
 
 	// --------------------------------------------------------------------
@@ -199,11 +203,11 @@ class MY_Session extends CI_Session {
 		else
 		{
 			// encryption was not used, so we need to check the md5 hash
-			$hash	 = substr($session, strlen($session) - 32); // get last 32 chars
-			$session = substr($session, 0, strlen($session) - 32);
+			$hash	 = substr($session, strlen($session)-32); // get last 32 chars
+			$session = substr($session, 0, strlen($session)-32);
 
-			// Does the md5 hash match? This is to prevent manipulation of session data in userspace
-			if ($hash !== md5($session.$this->encryption_key))
+			// Does the md5 hash match?  This is to prevent manipulation of session data in userspace
+			if ($hash !==  md5($session.$this->encryption_key))
 			{
 				log_message('error', 'The session cookie data did not match what was expected. This could be a possible hacking attempt.');
 				$this->sess_destroy();
@@ -381,7 +385,10 @@ class MY_Session extends CI_Session {
 		{
 			$this->CI->mongo_db
 				->where('_id', new MongoId($this->userdata['session_id']))
-				->set(array('last_activity' => $this->userdata['last_activity'], 'user_data' => $custom_userdata))
+				->set(array(
+					'last_activity' => $this->userdata['last_activity'],
+					'user_data' => $custom_userdata)
+				)
 				->update($this->_config['sess_collection_name']);
 		}
 		elseif ($this->sess_table_name != '')
@@ -389,8 +396,8 @@ class MY_Session extends CI_Session {
 			$this->CI->db->where('session_id', $this->userdata['session_id']);
 			$this->CI->db->update($this->sess_table_name, array(
 				'last_activity' => $this->userdata['last_activity'],
-				'user_data'     => $custom_userdata,
-			));
+				'user_data' => $custom_userdata)
+			);
 		}
 
 		// Write the cookie.  Notice that we manually pass the cookie data array to the
@@ -410,9 +417,7 @@ class MY_Session extends CI_Session {
 	public function sess_create()
 	{
 		$sessid = '';
-		// Why 24? MongoId class needs a 24 character long ID as constructor input,
-		// @see: http://www.php.net/manual/en/mongoid.construct.php
-		while (strlen($sessid) < 24)
+		while (strlen($sessid) < 32)
 		{
 			$sessid .= mt_rand(0, mt_getrandmax());
 		}
@@ -421,7 +426,7 @@ class MY_Session extends CI_Session {
 		$sessid .= $this->CI->input->ip_address();
 
 		$this->userdata = array(
-			'session_id'	=> substr(md5(uniqid($sessid, TRUE)), 0, 24),
+			'session_id'	=> md5(uniqid($sessid, TRUE)),
 			'ip_address'	=> $this->CI->input->ip_address(),
 			'user_agent'	=> substr($this->CI->input->user_agent(), 0, 120),
 			'last_activity'	=> $this->now,
@@ -436,8 +441,13 @@ class MY_Session extends CI_Session {
 				// Prepare session document:
 				// We're using document's _id field as session identifier,
 				// so we move the value to _id and remove session_id field.
+				
+				// Why reduce to 24-character hex string?
+				// So MongoId can take this input
+				// see: http://www.php.net/manual/en/mongoid.construct.php
+
 				$document = $this->userdata;
-				$document['_id'] = new MongoId($document['session_id']);
+				$document['_id'] = new MongoId(substr($document['session_id'], 0, 24));
 				unset($document['session_id']);
 
 				// Insert session document
@@ -473,7 +483,7 @@ class MY_Session extends CI_Session {
 		// update in the database if we need it
 		$old_sessid = $this->userdata['session_id'];
 		$new_sessid = '';
-		while (strlen($new_sessid) < 24)
+		while (strlen($new_sessid) < 32)
 		{
 			$new_sessid .= mt_rand(0, mt_getrandmax());
 		}
@@ -482,7 +492,7 @@ class MY_Session extends CI_Session {
 		$new_sessid .= $this->CI->input->ip_address();
 
 		// Turn it into a hash
-		$new_sessid = substr(md5(uniqid($new_sessid, TRUE)), 0, 24);
+		$new_sessid = md5(uniqid($new_sessid, TRUE));
 
 		// Update the session data in the session data array
 		$this->userdata['session_id'] = $new_sessid;
@@ -505,27 +515,43 @@ class MY_Session extends CI_Session {
 			// Update session document
 			if ($this->_use_mongodb)
 			{
-				$old_session = $this->CI->mongo_db
-					->where('_id', new MongoId($old_sessid))
-					->get($this->_config['sess_collection_name']);
+				// Get a copy of the session in db
 
-				$old_session[0]['_id'] = new MongoId($new_sessid);
+				// Why reduce to 24-character hex string?
+				// So MongoId can take this input
+				// see: http://www.php.net/manual/en/mongoid.construct.php
+
+				$session_db = $this->CI->mongo_db
+					->where('_id', new MongoId(substr($old_sessid, 0, 24)))
+					->get($this->_config['sess_collection_name']);
 
 				// Since we're using _id field as our session identifier, we need to
 				// remove the old session document first and insert another one later.
 				$this->CI->mongo_db
-					->where('_id', new MongoId($old_sessid))
+					->where('_id', $session_db[0]['_id'])
 					->delete($this->_config['sess_collection_name']);
 
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $old_session[0]);
+				// Replace the session _id and last activity with new ones
+				$session_db[0]['_id'] = new MongoId(substr($new_sessid, 0, 24));
+				$session_db[0]['last_activity'] = $this->now;
+
+				// Insert the new session into db
+				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $session_db[0]);
+
 			}
 			// Update session record
 			elseif ($this->sess_table_name != '')
 			{
-				$this->CI->db->query($this->CI->db->update_string($this->sess_table_name, array(
-					'last_activity' => $this->now,
-					'session_id' => $new_sessid
-				), array('session_id' => $old_sessid)));
+				$this->CI->db->query(
+					$this->CI->db->update_string(
+						$this->sess_table_name,
+						array(
+							'last_activity' => $this->now,
+							'session_id' => $new_sessid
+						),
+						array('session_id' => $old_sessid)
+					)
+				);
 			}
 		}
 
@@ -544,12 +570,12 @@ class MY_Session extends CI_Session {
 	public function sess_destroy()
 	{
 		// Kill the session DB row/document
-		if ($this->sess_use_database === TRUE AND isset($this->userdata['session_id']))
+		if ($this->sess_use_database === TRUE && isset($this->userdata['session_id']))
 		{
 			if ($this->_use_mongodb)
 			{
 				$this->CI->mongo_db
-					->where('_id', new MongoId($this->userdata['session_id']))
+					->where('_id', new MongoId(substr($this->userdata['session_id'], 0, 24))
 					->delete($this->_config['sess_collection_name']);
 			}
 			elseif ($this->sess_table_name != '')
@@ -568,6 +594,9 @@ class MY_Session extends CI_Session {
 			$this->cookie_domain,
 			0
 		);
+
+		// Kill session data
+		$this->userdata = array();
 	}
 
 	// --------------------------------------------------------------------
@@ -577,8 +606,6 @@ class MY_Session extends CI_Session {
 	 *
 	 * This deletes expired session rows from database
 	 * if the probability percentage is met
-	 *
-	 * NOTE: Fuck PHP4!
 	 *
 	 * @access	public
 	 * @return	void
@@ -604,7 +631,7 @@ class MY_Session extends CI_Session {
 			elseif ($this->sess_table_name != '')
 			{
 				$this->CI->db->where("last_activity < {$expire}");
-				$this->CI->db->delete($this->sess_table_name);/**/
+				$this->CI->db->delete($this->sess_table_name);
 			}
 
 			log_message('debug', 'Session garbage collection performed.');
