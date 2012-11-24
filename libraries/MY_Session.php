@@ -439,7 +439,15 @@ class MY_Session extends CI_Session {
 			if ($this->_use_mongodb)
 			{
 				// Insert session document
-				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], $this->userdata);
+				// Note: we cannot use $this->userdata because it's passed by reference
+				// And Insert has side-effect that append _id to $this->userdata
+				$this->CI->mongo_db->insert($this->_config['sess_collection_name'], array(
+					'session_id'    => $this->userdata['session_id'],
+					'ip_address'    => $this->userdata['ip_address'],
+					'user_agent'    => $this->userdata['user_agent'],
+					'last_activity' => $this->userdata['last_activity'],
+					'user_data'     => '',
+				));
 			}
 			elseif ($this->sess_table_name != '')
 			{
