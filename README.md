@@ -6,8 +6,8 @@ library to use MongoDB as database backend. It's uses V2 branch
 of "CodeIgniter MongoDB Active Record Library" by Alex Bilbie as
 MongoDB interface. See below for installation instructions.
 
-##Sample screenshot
-![CodeIgniter MongoDB Session Library - Sample session document](http://localhostr.com/file/930/hDBmU0TwPWRZ/ci-mongodb-session.png)
+##Screenshot
+![CodeIgniter MongoDB Session Library - Sample session document](https://hostr.co/file/970/hDBmU0TwPWRZ/ci-mongodb-session.png)
 
 ##Requirements
 * [CodeIgniter MongoDB Active Record Library](https://github.com/alexbilbie/codeigniter-mongodb-library/tree/v2)
