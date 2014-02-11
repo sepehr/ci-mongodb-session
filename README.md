@@ -26,3 +26,7 @@ MongoDB interface. See below for installation instructions.
 * Make sure `sess_use_mongodb` is set to `TRUE`. Also set `sess_collection_name` with
   MongoDB session collection name. Both config directives reside in
   `application/config/mongodb_session.php` file.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/sepehr/ci-mongodb-session/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
